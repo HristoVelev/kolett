@@ -100,7 +100,6 @@ venv.bak/
 .mypy_cache/
 
 # User-specific settings & Credentials
-configs/settings.yaml
 credentials.yml
 *.json
 !sample_input.json

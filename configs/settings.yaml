@@ -1,0 +1,52 @@
+# Kolett Global Settings Template
+# This file defines the studio-specific environment and plugin orchestration.
+# Copy this to a private file (e.g., studio.yaml) and fill in your details.
+
+storage:
+  # The default root directory where packages will be created.
+  root: "/tmp/kolett_deliveries"
+
+  # Temporary directory for staging large transfers
+  temp: "/tmp/kolett_staging"
+
+paths:
+  # Path to the Jinja2 templates directory for manifests and naming.
+  # If left null, the engine defaults to the project's internal 'templates' folder.
+  template_dir: null
+
+plugins:
+  # --- Input Plugins: Where the delivery data comes from ---
+  input:
+    # Set the active input plugin name (must match a folder in src/kolett/plugins/input/)
+    active: "grist"
+
+    grist:
+      server_url: "https://grist.example.com"
+      api_key: "YOUR_API_KEY_HERE"
+      doc_id: "YOUR_DOC_ID_HERE"
+
+  # --- Output Plugins: What happens after the files are moved ---
+  # These are triggered as callbacks by the engine.
+  output:
+    grist_update:
+      enabled: true
+      table_id: "Packages"
+
+    apprise:
+      enabled: false
+      # The URL to your self-hosted Apprise API
+      api_url: "http://localhost:8085/notify"
+      # Default tags to trigger (defined in your Apprise config)
+      tags: ["deliveries"]
+
+    email:
+      enabled: false
+      smtp_server: "smtp.example.com"
+      smtp_port: 587
+      sender: "kolett@example.com"
+      recipients: []
+
+# Global Logging Configuration
+logging:
+  level: "INFO"
+  file: "kolett.log"
