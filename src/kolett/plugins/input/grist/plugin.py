@@ -47,8 +47,17 @@ class InputPlugin:
         package_row_id = package_record["id"]
         package_fields = package_record.get("fields", {})
 
-        # 2. Fetch Linked Items
-        items = self._get_records("Items", filter_dict={"Package": [package_row_id]})
+        # 2. Fetch Linked Items from RefList
+        item_ids = package_fields.get("Items", [])
+        # Grist RefList format is ["L", id1, id2, ...]
+        if isinstance(item_ids, list) and len(item_ids) > 1 and item_ids[0] == "L":
+            item_ids = item_ids[1:]
+        elif not isinstance(item_ids, list):
+            item_ids = []
+
+        items = []
+        if item_ids:
+            items = self._get_records("Items", filter_dict={"id": item_ids})
 
         # 3. Map to Protocol
         return self._map_to_protocol(package_record, items)
@@ -75,8 +84,11 @@ class InputPlugin:
         package_fields = package_record.get("fields", {})
 
         # Determine the human-friendly folder name
-        package_name = package_fields.get(
-            "Package_Name", package_fields.get("Package_ID", "Unknown")
+        package_name = (
+            package_fields.get("Package_Name")
+            or package_fields.get("Name")
+            or package_fields.get("Package_ID")
+            or f"Package_{package_record.get('id')}"
         )
 
         items = []
@@ -90,6 +102,12 @@ class InputPlugin:
 
             # Metadata aggregation (Item fields + prefixed Package fields)
             metadata = {k: str(v) for k, v in fields.items() if v is not None}
+
+            # Map flexible Grist ID fields to standard metadata for templating
+            if "Item_ID" in fields:
+                metadata["item_id"] = str(fields["Item_ID"])
+            if "Name" in fields:
+                metadata["item_name"] = str(fields["Name"])
             for k, v in package_fields.items():
                 if v is not None and k not in metadata:
                     metadata[f"pkg_{k}"] = str(v)
