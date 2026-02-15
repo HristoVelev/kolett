@@ -30,6 +30,9 @@ plugins:
   process:
     copy:
       enabled: true
+      # Optional: A global Jinja2 template for target filenames if not specified in the database.
+      # Example: "{{ item_id }}/{{ src_name }}"
+      target_template: null
     symlink:
       enabled: true
     # Future plugins like 'transcode' or 'aspera' would be configured here.
@@ -37,6 +40,10 @@ plugins:
   # --- Output Plugins: What happens after the files are moved ---
   # These are triggered as callbacks by the engine.
   output:
+    manifest:
+      enabled: true
+      template_name: "manifest.md.j2"
+
     grist_update:
       enabled: true
       table_id: "Packages"
