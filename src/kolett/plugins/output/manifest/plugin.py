@@ -24,11 +24,9 @@ class Plugin(CallbackPlugin):
 
         # Resolve template directory:
         # 1. Config override
-        # 2. Global engine path (if passed via config injection)
-        # 3. Default project templates folder
+        # 2. Default to the plugin's own directory
         if not template_dir:
-            project_root = Path(__file__).parent.parent.parent.parent.parent
-            template_dir = str(project_root / "templates")
+            template_dir = str(Path(__file__).parent)
 
         manifest_file = Path(delivery_output.delivery_path) / "manifest.md"
 

@@ -4,7 +4,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from kolett.protocol import DeliveryInput, DeliveryOutput, ItemResult
 from kolett.templating import render_path
@@ -18,9 +18,6 @@ class KolettEngine:
         self.config = config
         self.default_root = Path(
             config.get("storage", {}).get("root", "/tmp/kolett_deliveries")
-        )
-        self.template_dir = Path(
-            config.get("paths", {}).get("template_dir", "templates")
         )
 
     def process_delivery(self, delivery: DeliveryInput) -> DeliveryOutput:
@@ -105,7 +102,7 @@ class KolettEngine:
                         target_path.parent.mkdir(parents=True, exist_ok=True)
 
                     # Perform the process via plugin
-                    success = self._run_process_plugin(
+                    success, final_destination = self._run_process_plugin(
                         item.process_method,
                         str(src_file),
                         str(target_path),
@@ -116,7 +113,7 @@ class KolettEngine:
                     results.append(
                         ItemResult(
                             source=str(src_file),
-                            destination=str(target_path),
+                            destination=final_destination,
                             description=item.metadata.get("description")
                             or item.metadata.get("Description"),
                             success=success,
@@ -156,7 +153,7 @@ class KolettEngine:
 
     def _run_process_plugin(
         self, method: str, source: str, destination: str, metadata: dict, dry_run: bool
-    ) -> bool:
+    ) -> Tuple[bool, str]:
         """
         Dynamically loads and executes a process plugin (copy, move, etc.).
         """
@@ -177,7 +174,7 @@ class KolettEngine:
 
         except Exception as e:
             logger.error(f"Process plugin {method} failed: {str(e)}")
-            return False
+            return False, destination
 
     def _run_callbacks(self, delivery: DeliveryInput, output: DeliveryOutput):
         """

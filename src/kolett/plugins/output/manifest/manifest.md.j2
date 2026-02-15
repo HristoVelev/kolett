@@ -16,7 +16,7 @@
 | Item | Description | Source Path | Target Name | Status |
 | :--- | :--- | :--- | :--- | :--- |
 {% for item in results -%}
-| {{ loop.index }} | {{ item.description or "" }} | `{{ item.source }}` | **{{ item.destination | basename }}** | {{ "✅" if item.success else "❌" }} |
+| {{ loop.item_id }} | {{ item.description or "" }} | `{{ item.source }}` | **{{ item.destination | basename }}** | {{ "✅" if item.success else "❌" }} |
 {% endfor %}
 
 ---

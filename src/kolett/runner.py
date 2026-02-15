@@ -34,13 +34,6 @@ class KolettApp:
         with open(self.settings_path, "r") as f:
             settings = yaml.safe_load(f) or {}
 
-        # Ensure template path is resolved relative to the runner
-        if settings.get("paths") is None:
-            settings["paths"] = {}
-        if settings["paths"].get("template_dir") is None:
-            project_root = Path(__file__).parent.parent.parent
-            settings["paths"]["template_dir"] = str(project_root / "templates")
-
         return settings
 
     def run_by_package_id(self, package_id: str, dry_run: bool = False):
