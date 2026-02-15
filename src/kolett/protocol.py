@@ -11,8 +11,8 @@ class PackageItem(BaseModel):
     source_path: str = Field(
         ..., description="Absolute path to the source file or sequence directory"
     )
-    target_template: str = Field(
-        ..., description="Jinja2 template for the target filename/path"
+    target_template: Optional[str] = Field(
+        None, description="Jinja2 template for the target filename/path"
     )
     process_method: str = Field(
         "copy", description="The process plugin to use (e.g., copy, move, link)"

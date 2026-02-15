@@ -97,7 +97,7 @@ class InputPlugin:
             source = fields.get("Folder_Internal")
             template = fields.get("Target_Template")
 
-            if not source or not template:
+            if not source:
                 continue
 
             # Metadata aggregation (Item fields + prefixed Package fields)

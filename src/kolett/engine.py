@@ -84,15 +84,18 @@ class KolettEngine:
                         }
                     )
 
-                    # Render target path. Handle missing variables by keeping them or defaulting.
-                    try:
-                        target_filename = render_path(
-                            item.target_template, file_metadata
-                        )
-                    except Exception as template_err:
-                        logger.warning(
-                            f"Template rendering failed for {src_file.name}: {template_err}. Falling back to original name."
-                        )
+                    # Render target path if template is provided, otherwise use original name
+                    if item.target_template:
+                        try:
+                            target_filename = render_path(
+                                item.target_template, file_metadata
+                            )
+                        except Exception as template_err:
+                            logger.warning(
+                                f"Template rendering failed for {src_file.name}: {template_err}. Falling back to original name."
+                            )
+                            target_filename = src_file.name
+                    else:
                         target_filename = src_file.name
 
                     target_path = delivery_path / target_filename
