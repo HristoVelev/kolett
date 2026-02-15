@@ -55,35 +55,70 @@ class KolettEngine:
 
         for item in delivery.items:
             try:
-                # Render target filename
-                target_filename = render_path(item.target_template, item.metadata)
-                target_path = delivery_path / target_filename
-
-                # Ensure subdirectories in target path exist (e.g. shots/s01/...)
-                if not delivery.dry_run:
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-
                 source = Path(item.source_path)
-
                 if not source.exists():
                     raise FileNotFoundError(
                         f"Source path does not exist: {item.source_path}"
                     )
 
-                # Perform the copy
-                if not delivery.dry_run:
-                    # Note: For VFX sequences, we might want to extend this to handle directory copies/symlinks
-                    if source.is_dir():
-                        shutil.copytree(source, target_path, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(source, target_path)
+                # Collect files to process (single file or directory contents)
+                sources_to_copy = []
+                if source.is_dir():
+                    # Collect all files recursively, but we might want to preserve
+                    # relative structure or flatten depending on target_template logic.
+                    # For now, we collect top-level files to match common VFX sequence/folder patterns.
+                    sources_to_copy = [f for f in source.iterdir() if f.is_file()]
+                    if not sources_to_copy:
+                        logger.warning(f"Source directory is empty: {source}")
+                else:
+                    sources_to_copy = [source]
 
-                results.append(
-                    ItemResult(
-                        source=str(source), destination=str(target_path), success=True
+                for src_file in sources_to_copy:
+                    # Enrich metadata with file-specific info
+                    file_metadata = item.metadata.copy()
+                    file_metadata.update(
+                        {
+                            "src_name": src_file.name,
+                            "src_base": src_file.stem,
+                            "src_ext": src_file.suffix.lstrip("."),
+                        }
                     )
-                )
-                logger.info(f"Delivered: {source.name} -> {target_filename}")
+
+                    # Render target path. Handle missing variables by keeping them or defaulting.
+                    try:
+                        target_filename = render_path(
+                            item.target_template, file_metadata
+                        )
+                    except Exception as template_err:
+                        logger.warning(
+                            f"Template rendering failed for {src_file.name}: {template_err}. Falling back to original name."
+                        )
+                        target_filename = src_file.name
+
+                    target_path = delivery_path / target_filename
+
+                    # Ensure subdirectories in target path exist
+                    if not delivery.dry_run:
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Perform the process via plugin
+                    success = self._run_process_plugin(
+                        item.process_method,
+                        str(src_file),
+                        str(target_path),
+                        file_metadata,
+                        delivery.dry_run,
+                    )
+
+                    results.append(
+                        ItemResult(
+                            source=str(src_file),
+                            destination=str(target_path),
+                            success=success,
+                        )
+                    )
+                    if success:
+                        logger.info(f"Delivered: {src_file.name} -> {target_filename}")
 
             except Exception as e:
                 logger.error(f"Failed to deliver {item.source_path}: {str(e)}")
@@ -156,6 +191,31 @@ class KolettEngine:
         self._run_callbacks(delivery, output)
 
         return output
+
+    def _run_process_plugin(
+        self, method: str, source: str, destination: str, metadata: dict, dry_run: bool
+    ) -> bool:
+        """
+        Dynamically loads and executes a process plugin (copy, move, etc.).
+        """
+        try:
+            # Dynamic import: kolett.plugins.process.{method}.plugin
+            module_path = f"kolett.plugins.process.{method}.plugin"
+            module = importlib.import_module(module_path)
+
+            # Get plugin-specific config from global settings
+            process_config = (
+                self.config.get("plugins", {}).get("process", {}).get(method, {})
+            )
+
+            # Instantiate and run
+            plugin_class = getattr(module, "Plugin")
+            plugin_instance = plugin_class(process_config, dry_run=dry_run)
+            return plugin_instance.run(source, destination, metadata)
+
+        except Exception as e:
+            logger.error(f"Process plugin {method} failed: {str(e)}")
+            return False
 
     def _run_callbacks(self, delivery: DeliveryInput, output: DeliveryOutput):
         """

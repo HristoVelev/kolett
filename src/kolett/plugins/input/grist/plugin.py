@@ -114,7 +114,10 @@ class InputPlugin:
 
             items.append(
                 PackageItem(
-                    source_path=source, target_template=template, metadata=metadata
+                    source_path=source,
+                    target_template=template,
+                    process_method=fields.get("Process_Method", "copy"),
+                    metadata=metadata,
                 )
             )
 

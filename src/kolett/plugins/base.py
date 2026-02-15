@@ -29,3 +29,29 @@ class CallbackPlugin(ABC):
             bool: True if the plugin executed successfully, False otherwise.
         """
         pass
+
+
+class ProcessPlugin(ABC):
+    """
+    Base class for all Kolett process plugins (copy, move, transcode, etc.).
+    Each plugin should be placed in its own directory under plugins/process/.
+    """
+
+    def __init__(self, config: Dict[str, Any], dry_run: bool = False):
+        self.config = config
+        self.dry_run = dry_run
+
+    @abstractmethod
+    def run(self, source: str, destination: str, metadata: Dict[str, Any]) -> bool:
+        """
+        The main entry point for the processing logic.
+
+        Args:
+            source: Path to the source file.
+            destination: Target path for the file.
+            metadata: Metadata available for this specific file.
+
+        Returns:
+            bool: True if the process completed successfully, False otherwise.
+        """
+        pass

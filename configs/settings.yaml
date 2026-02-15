@@ -25,6 +25,15 @@ plugins:
       api_key: "YOUR_API_KEY_HERE"
       doc_id: "YOUR_DOC_ID_HERE"
 
+  # --- Process Plugins: How files are handled during delivery ---
+  # These define the 'process_method' used for items (copy, symlink, move, etc.)
+  process:
+    copy:
+      enabled: true
+    symlink:
+      enabled: true
+    # Future plugins like 'transcode' or 'aspera' would be configured here.
+
   # --- Output Plugins: What happens after the files are moved ---
   # These are triggered as callbacks by the engine.
   output:

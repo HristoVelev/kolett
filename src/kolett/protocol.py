@@ -14,6 +14,9 @@ class PackageItem(BaseModel):
     target_template: str = Field(
         ..., description="Jinja2 template for the target filename/path"
     )
+    process_method: str = Field(
+        "copy", description="The process plugin to use (e.g., copy, move, link)"
+    )
     metadata: Dict[str, str] = Field(
         default_factory=dict, description="Metadata used for template rendering"
     )
