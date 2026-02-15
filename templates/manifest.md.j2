@@ -13,10 +13,10 @@
 
 ## 📑 Delivery Items
 
-| Item | Source Path | Target Name | Status |
-| :--- | :--- | :--- | :--- |
+| Item | Description | Source Path | Target Name | Status |
+| :--- | :--- | :--- | :--- | :--- |
 {% for item in results -%}
-| {{ loop.index }} | `{{ item.source }}` | **{{ item.destination | basename }}** | {{ "✅" if item.success else "❌" }} |
+| {{ loop.index }} | {{ item.description or "" }} | `{{ item.source }}` | **{{ item.destination | basename }}** | {{ "✅" if item.success else "❌" }} |
 {% endfor %}
 
 ---

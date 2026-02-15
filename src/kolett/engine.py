@@ -119,6 +119,8 @@ class KolettEngine:
                         ItemResult(
                             source=str(src_file),
                             destination=str(target_path),
+                            description=item.metadata.get("description")
+                            or item.metadata.get("Description"),
                             success=success,
                         )
                     )
@@ -239,6 +241,7 @@ class KolettEngine:
                     ItemResult(
                         source=f"{Path(first_res.source).parent}/{prefix}.[{start}-{end}].{ext}",
                         destination=f"{parent}/{seq_name}",
+                        description=first_res.description,
                         success=True,
                     )
                 )

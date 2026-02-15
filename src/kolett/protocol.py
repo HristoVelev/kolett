@@ -55,6 +55,7 @@ class ItemResult(BaseModel):
 
     source: str
     destination: str
+    description: Optional[str] = None
     success: bool
     error: Optional[str] = None
 
