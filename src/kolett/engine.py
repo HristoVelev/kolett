@@ -2,7 +2,9 @@ import datetime
 import importlib
 import logging
 import os
+import re
 import shutil
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -134,11 +136,12 @@ class KolettEngine:
                     )
                 )
 
+        # Sequence grouping for manifest display
+        grouped_results = self._group_sequences(results)
+
         # Prepare context for manifest
         success_count = sum(1 for r in results if r.success)
-        summary = (
-            f"Successfully delivered {success_count} of {len(delivery.items)} items."
-        )
+        summary = f"Successfully delivered {success_count} files across {len(delivery.items)} items."
 
         manifest_context = {
             "package_name": delivery.package_name,
@@ -146,11 +149,13 @@ class KolettEngine:
             "client_config": delivery.client_config,
             "delivery_path": str(delivery_path),
             "summary": summary,
-            "results": results,
+            "results": grouped_results,
             "items": [
                 {
                     "source": item.source_path,
-                    "destination": render_path(item.target_template, item.metadata),
+                    "destination": render_path(item.target_template, item.metadata)
+                    if item.target_template
+                    else item.source_path,
                     "metadata": item.metadata,
                     "error": next(
                         (
@@ -194,6 +199,54 @@ class KolettEngine:
         self._run_callbacks(delivery, output)
 
         return output
+
+    def _group_sequences(self, results: List[ItemResult]) -> List[ItemResult]:
+        """
+        Groups individual frames in the results list into sequence strings for manifest display.
+        Example: shot.1001.exr, shot.1002.exr -> shot.[1001-1002].exr
+        """
+        # Regex to find frame numbers: name.1001.exr or name_1001.exr
+        pattern = re.compile(r"^(.*?)[._](\d+)\.([a-zA-Z0-9]+)$")
+
+        sequences = defaultdict(list)
+        others = []
+
+        for res in results:
+            if not res.success:
+                others.append(res)
+                continue
+
+            dest_path = Path(res.destination)
+            match = pattern.match(dest_path.name)
+            if match:
+                prefix, frame, ext = match.groups()
+                # Group by directory + prefix + extension
+                key = (str(dest_path.parent), prefix, ext)
+                sequences[key].append((int(frame), res))
+            else:
+                others.append(res)
+
+        final_results = []
+        for (parent, prefix, ext), frames in sequences.items():
+            if len(frames) > 1:
+                frames.sort()
+                start = frames[0][0]
+                end = frames[-1][0]
+                # Create a representative ItemResult for the sequence
+                seq_name = f"{prefix}.[{start}-{end}].{ext}"
+                first_res = frames[0][1]
+                final_results.append(
+                    ItemResult(
+                        source=f"{Path(first_res.source).parent}/{prefix}.[{start}-{end}].{ext}",
+                        destination=f"{parent}/{seq_name}",
+                        success=True,
+                    )
+                )
+            else:
+                # Only one frame, don't treat as sequence
+                final_results.append(frames[0][1])
+
+        return final_results + others
 
     def _run_process_plugin(
         self, method: str, source: str, destination: str, metadata: dict, dry_run: bool
