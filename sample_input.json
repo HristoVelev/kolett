@@ -1,0 +1,35 @@
+{
+  "package_name": "KOLETT_TEST_DELIVERY_v001",
+  "client_config": "standard_vfx_v1",
+  "items": [
+    {
+      "source_path": "/tmp/kolett_test_source/shot_010_lighting_v001.exr",
+      "target_template": "shots/{{ shot_code }}/{{ shot_code }}_{{ version }}.{{ ext }}",
+      "metadata": {
+        "shot_code": "sh010",
+        "version": "v001",
+        "ext": "exr"
+      }
+    },
+    {
+      "source_path": "/tmp/kolett_test_source/shot_020_lighting_v003.exr",
+      "target_template": "shots/{{ shot_code }}/{{ shot_code }}_{{ version }}.{{ ext }}",
+      "metadata": {
+        "shot_code": "sh020",
+        "version": "v003",
+        "ext": "exr"
+      }
+    },
+    {
+      "source_path": "/tmp/kolett_test_source/reference_video.mp4",
+      "target_template": "reference/{{ client_ref_id }}_review.mp4",
+      "metadata": {
+        "client_ref_id": "REF_99"
+      }
+    }
+  ],
+  "notifications": [
+    "mattermost_internal",
+    "email_client"
+  ]
+}
