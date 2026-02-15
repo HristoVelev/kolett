@@ -167,6 +167,11 @@ class KolettEngine:
 
         for plugin_name, plugin_config in delivery.callbacks.items():
             try:
+                # Skip if the plugin is explicitly disabled in config
+                if not plugin_config.get("enabled", True):
+                    logger.info(f"Plugin {plugin_name} is disabled. Skipping.")
+                    continue
+
                 logger.info(f"Executing callback plugin: {plugin_name}")
 
                 # Dynamic import: kolett.plugins.output.{name}.plugin

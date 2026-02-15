@@ -1,0 +1,39 @@
+# Kolett Global Settings
+# This file defines the studio-specific environment for the delivery engine.
+
+storage:
+  # The default root directory where packages will be created.
+  # On BTL VFX infrastructure, this would typically be /mnt/prod/deliveries
+  root: "/mnt/prod/projects/dra/global/transfer/from_btl"
+
+  # Temporary directory for staging (if needed)
+  temp: "/tmp/kolett_staging"
+
+paths:
+  # Path to the Jinja2 templates directory
+  # If left commented, the engine defaults to the project's 'templates' folder.
+  # template_dir: "/opt/btl/kolett/templates"
+
+plugins:
+  # Configuration for notification plugins
+  notifications:
+    mattermost:
+      enabled: false
+      url: "https://mattermost.example.com/hooks/xxx"
+      channel: "deliveries"
+
+    email:
+      enabled: false
+      smtp_server: "localhost"
+      sender: "kolett@bottleshipvfx.com"
+
+# Grist Configuration (Connector Source)
+grist:
+  server_url: "https://grist.tail74e423.ts.net"
+  api_key: "d27435bf2be63170c71432b073c18ccba54e9e5c"
+  doc_id: "n4hcbNVbWVELK17zwK2pNX"
+
+# Logging configuration
+logging:
+  level: "INFO"
+  file: "kolett.log"

@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import logging
 import os
 import sys
@@ -7,7 +8,6 @@ from pathlib import Path
 import yaml
 
 from kolett.engine import KolettEngine
-from kolett.plugins.input.grist.plugin import GristConnector
 from kolett.protocol import DeliveryInput
 
 # Configure logging
@@ -46,61 +46,44 @@ class KolettApp:
     def run_by_package_id(self, package_id: str, dry_run: bool = False):
         """
         Main orchestration logic:
-        1. Connect to Grist
-        2. Find the Package by Package_ID
-        3. Fetch associated Items
-        4. Convert to Kolett Open Protocol
-        5. Process via Engine
+        1. Load Active Input Plugin
+        2. Fetch Delivery Data via Plugin
+        3. Process via Engine
         """
-        grist_cfg = self.settings.get("grist", {})
-        api_key = grist_cfg.get("api_key")
-        doc_id = grist_cfg.get("doc_id")
-        server_url = grist_cfg.get("server_url", "https://grist.tail74e423.ts.net")
+        input_plugins = self.settings.get("plugins", {}).get("input", {})
+        active_plugin_name = input_plugins.get("active")
 
-        if not api_key or not doc_id:
-            logger.error("Grist api_key and doc_id must be defined in settings.yaml")
+        if not active_plugin_name:
+            logger.error("No active input plugin defined in settings.yaml")
             sys.exit(1)
 
-        connector = GristConnector(server_url, api_key, doc_id)
+        plugin_config = input_plugins.get(active_plugin_name, {})
 
-        # 1. Find the package record
-        logger.info(f"Searching for package '{package_id}' in Grist...")
-        packages = connector.fetch_delivery_data(
-            "Packages", filter_dict={"Package_ID": [package_id]}
-        )
+        try:
+            # Dynamic import: kolett.plugins.input.{name}.plugin
+            module_path = f"kolett.plugins.input.{active_plugin_name}.plugin"
+            module = importlib.import_module(module_path)
 
-        if not packages:
-            logger.error(f"Package '{package_id}' not found in Grist.")
+            # Instantiate Input Plugin
+            # Input plugins must expose an 'InputPlugin' class
+            plugin_class = getattr(module, "InputPlugin")
+            input_plugin = plugin_class(plugin_config, engine_config=self.settings)
+
+            logger.info(
+                f"Fetching package '{package_id}' via {active_plugin_name} plugin..."
+            )
+            delivery_input = input_plugin.fetch_package(package_id)
+
+        except Exception as e:
+            logger.error(
+                f"Failed to load or execute input plugin '{active_plugin_name}': {e}"
+            )
             sys.exit(1)
-
-        package_record = packages[0]
-        package_row_id = package_record["id"]
-
-        # 2. Fetch all items linked to this package
-        # Note: Grist stores Ref fields as row IDs
-        logger.info(f"Fetching items for package row ID: {package_row_id}")
-        items = connector.fetch_delivery_data(
-            "Items", filter_dict={"Package": [package_row_id]}
-        )
-
-        if not items:
-            logger.warning(f"No items found for package '{package_id}'.")
-
-        # 3. Map to Kolett Protocol
-        # We pass the global settings as the 'engine_config' for plugin resolution
-        delivery_input = connector.map_to_kolett(
-            package_record=package_record,
-            item_records=items,
-            client_config=package_record.get("fields", {}).get(
-                "Client_Config", "standard"
-            ),
-            engine_config=self.settings,
-        )
 
         if dry_run:
             delivery_input.dry_run = True
 
-        # 4. Process Delivery
+        # Process Delivery
         logger.info(f"Handing off to Kolett Engine...")
         output = self.engine.process_delivery(delivery_input)
 
