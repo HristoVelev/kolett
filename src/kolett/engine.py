@@ -101,26 +101,39 @@ class KolettEngine:
                     if not delivery.dry_run:
                         target_path.parent.mkdir(parents=True, exist_ok=True)
 
-                    # Perform the process via plugin
-                    success, final_destination = self._run_process_plugin(
-                        item.process_method,
-                        str(src_file),
-                        str(target_path),
-                        file_metadata,
-                        delivery.dry_run,
-                    )
+                    # Perform sequential processing pipeline
+                    # Supports comma-separated strings for multiple steps (e.g., "tokenize, copy")
+                    methods = item.process_method
+                    if isinstance(methods, str):
+                        methods = [m.strip() for m in methods.split(",")]
+
+                    current_dest = str(target_path)
+                    process_success = True
+
+                    for method in methods:
+                        process_success, current_dest = self._run_process_plugin(
+                            method,
+                            str(src_file),
+                            current_dest,
+                            file_metadata,
+                            delivery.dry_run,
+                        )
+                        if not process_success:
+                            break
 
                     results.append(
                         ItemResult(
                             source=str(src_file),
-                            destination=final_destination,
+                            destination=current_dest,
                             description=item.metadata.get("description")
                             or item.metadata.get("Description"),
-                            success=success,
+                            success=process_success,
                         )
                     )
-                    if success:
-                        logger.info(f"Delivered: {src_file.name} -> {target_filename}")
+                    if process_success:
+                        logger.info(
+                            f"Processed {methods}: {src_file.name} -> {Path(current_dest).name}"
+                        )
 
             except Exception as e:
                 logger.error(f"Failed to deliver {item.source_path}: {str(e)}")

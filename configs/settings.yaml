@@ -33,6 +33,14 @@ plugins:
       # Optional: A global Jinja2 template for target filenames if not specified in the database.
       # Example: "{{ item_id }}/{{ src_name }}"
       target_template: null
+    tokenize:
+      enabled: true
+      # Delimiter to split by (default is /)
+      delimiter: "/"
+      # Map of metadata keys to index in the split list
+      # tokens:
+      #   project: 4
+      #   shot: 7
     symlink:
       enabled: true
     # Future plugins like 'transcode' or 'aspera' would be configured here.
